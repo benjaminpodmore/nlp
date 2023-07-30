@@ -9,6 +9,7 @@ from tokenizers import Tokenizer
 from transformers import AutoTokenizer
 
 CBOW_N_WORDS = 4
+MAX_SEQUENCE_LENGTH = 256
 
 
 class CBOW(nn.Module):
@@ -74,6 +75,9 @@ def collate_cbow(batch):
         text_token_ids = text["input_ids"]
         if len(text_token_ids) < CBOW_N_WORDS * 2 + 1:
             continue
+
+        if MAX_SEQUENCE_LENGTH:
+            text_token_ids = text_token_ids[:MAX_SEQUENCE_LENGTH]
 
         for idx in range(len(text_token_ids) - CBOW_N_WORDS * 2):
             token_id_sequence = text_token_ids[idx: (idx + CBOW_N_WORDS * 2 + 1)]
