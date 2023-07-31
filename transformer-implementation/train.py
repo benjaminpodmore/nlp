@@ -3,6 +3,9 @@ import torch.nn as nn
 import torch.optim as optim
 from model import Transformer
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device {device}.")
+
 
 src_vocab_size = 5000
 tgt_vocab_size = 5000
@@ -13,11 +16,15 @@ d_ff = 2048
 max_seq_length = 100
 dropout = 0.1
 
-transformer = Transformer(src_vocab_size, tgt_vocab_size, d_model, num_heads, num_layers, d_ff, max_seq_length, dropout)
+transformer = Transformer(src_vocab_size, tgt_vocab_size, d_model, num_heads, num_layers, d_ff, max_seq_length, dropout, device)
+transformer = transformer.to(device)
 
 # Generate random sample data
 src_data = torch.randint(1, src_vocab_size, (64, max_seq_length))  # (batch_size, seq_length)
 tgt_data = torch.randint(1, tgt_vocab_size, (64, max_seq_length))  # (batch_size, seq_length)
+
+src_data = src_data.to(device)
+tgt_data = tgt_data.to(device)
 
 criterion = nn.CrossEntropyLoss(ignore_index=0)
 optimizer = optim.Adam(transformer.parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9)
