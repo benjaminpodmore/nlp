@@ -21,4 +21,4 @@ class RNN(nn.Module):
         return output, hidden
 
     def init_hidden(self):
-        return nn.init.kaiming_uniform_(torch.empty(1, self.hidden_size))
+        return nn.init.kaiming_uniform_(torch.empty(5, self.hidden_size))

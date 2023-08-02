@@ -25,7 +25,7 @@ class Trainer:
         self.model.train()
         running_loss = []
 
-        hidden_state = self.model.init_hidden()
+        hidden_state = self.model.init_hidden().to(self.device)
 
         # for each minibatch
         for i, batch_data in enumerate(self.train_dataloader, 1):
@@ -39,6 +39,9 @@ class Trainer:
             self.optimizer.step()
 
             running_loss.append(loss.item())
+
+            if i == 10:
+                break
 
         self.loss["train"].append(np.mean(running_loss))
 
