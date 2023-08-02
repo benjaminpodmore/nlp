@@ -4,18 +4,23 @@ from datasets import load_dataset
 from transformers import AutoTokenizer, AutoModel
 
 
-def collate_fn(batch, model=AutoModel.from_pretrained("bert-base-uncased")):
+def collate_fn(batch):
+    model = AutoModel.from_pretrained("distilbert-base-uncased")
     input_ids = torch.stack([torch.tensor(x["input_ids"]) for x in batch])
     attention_masks = torch.stack([torch.tensor(x["attention_mask"]) for x in batch])
-    outputs = model(input_ids=input_ids, attention_mask=attention_masks)
 
-    return outputs.last_hidden_state, torch.tensor([x["label"] for x in batch])
+    outputs = model(input_ids, attention_mask=attention_masks)
+    batch_inputs = outputs.last_hidden_state
+
+    batch_outputs = torch.tensor([x["label"] for x in batch])
+
+    return batch_inputs, batch_outputs
 
 
 def get_dataloader_and_vocab(batch_size, split="train"):
     dataset = load_dataset("rotten_tomatoes", split=split)
     # tokenizer = Tokenizer.from_pretrained("bert-base-uncased")
-    tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+    tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
     vocab = tokenizer.get_vocab()
     encoded_dataset = dataset.map(lambda batch: tokenizer(batch["text"], padding=True, truncation=True),
                                   batched=True,

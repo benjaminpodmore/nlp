@@ -29,7 +29,7 @@ class Trainer:
 
         # for each minibatch
         for i, batch_data in enumerate(self.train_dataloader, 1):
-            inputs = batch_data[0].view(-1, 78*768).to(self.device)
+            inputs = batch_data[0].to(self.device)
             labels = batch_data[1].to(self.device)
 
             self.optimizer.zero_grad()

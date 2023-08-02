@@ -12,12 +12,12 @@ def train(epochs, batch_size):
 
     train_dataloader, vocab = get_dataloader_and_vocab(batch_size=batch_size, split="train")
     test_dataloader, _ = get_dataloader_and_vocab(batch_size=batch_size, split="train")
-    model = RNN(input_size=78*768, hidden_size=78*768, output_size=2).to(device)
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    model = RNN(input_size=78*768, hidden_size=100, output_size=2).to(device)
+    optimizer = optim.Adam(model.parameters(), lr=0.01)
     criterion = nn.CrossEntropyLoss()
     trainer = Trainer(model, epochs, optimizer, criterion, train_dataloader, val_dataloader=test_dataloader, device=device)
     trainer.train()
 
 
 if __name__ == "__main__":
-    train(epochs=50, batch_size=10)
+    train(epochs=50, batch_size=1)
