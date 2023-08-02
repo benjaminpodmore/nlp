@@ -16,6 +16,7 @@ def get_dataloader_and_vocab(batch_size, split="train"):
     dataset = load_dataset("rotten_tomatoes", split=split)
     # tokenizer = Tokenizer.from_pretrained("bert-base-uncased")
     tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+    # model = AutoModel.from_pretrained("bert-base-uncased")
     vocab = tokenizer.get_vocab()
     encoded_dataset = dataset.map(lambda batch: tokenizer(batch["text"], padding=True, truncation=True),
                                   batched=True,
