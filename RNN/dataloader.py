@@ -6,7 +6,7 @@ from transformers import AutoModel, AutoTokenizer
 
 def collate_fn(batch):
     batch_input_ids = torch.stack([torch.tensor(x["input_ids"]) for x in batch])
-    batch_attention_masks = torch.stack([torch.tensor(x["input_ids"]) for x in batch])
+    batch_attention_masks = torch.stack([torch.tensor(x["attention_mask"]) for x in batch])
 
     model = AutoModel.from_pretrained("distilbert-base-uncased")
     outputs = model(batch_input_ids, attention_mask=batch_attention_masks)
