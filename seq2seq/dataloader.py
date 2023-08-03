@@ -1,22 +1,25 @@
-from functools import partial
-
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 from datasets import load_dataset
 from transformers import AutoModel, AutoTokenizer
+from sklearn.decomposition import PCA
+from functools import partial
 
 
 def tokenize(tokenizer, batch):
-    batch_inputs = tokenizer([x["en"] for x in batch], padding=True, truncation=True)
-    batch_outputs = tokenizer([x["nl"] for x in batch], padding=True, truncation=True)
-    return {"en": {**batch_inputs}, "nl": {**batch_outputs}}
+    en_out = tokenizer([x["en"] for x in batch], padding=True, truncation=True)
+    nl_out = tokenizer([x["nl"] for x in batch], padding=True, truncation=True)
+
+    output = {"en_input_ids": en_out["input_ids"], "nl_input_ids": nl_out["input_ids"],
+              "en_attention_masks": en_out["attention_mask"], "nl_attention_masks": nl_out["attention_mask"]}
+    return output
 
 
 def collate_fn(model, batch):
-    en_input_ids = torch.stack([torch.tensor(x["en"]["input_ids"]) for x in batch])
-    en_attention_masks = torch.stack([torch.tensor(x["en"]["attention_masks"]) for x in batch])
-    nl_input_ids = torch.stack([torch.tensor(x["nl"]["input_ids"]) for x in batch])
-    nl_attention_masks = torch.stack([torch.tensor(x["nl"]["attention_masks"]) for x in batch])
+    en_input_ids = torch.stack([torch.tensor(x["en_input_ids"]) for x in batch])
+    en_attention_masks = torch.stack([torch.tensor(x["en_attention_masks"]) for x in batch])
+    nl_input_ids = torch.stack([torch.tensor(x["nl_input_ids"]) for x in batch])
+    nl_attention_masks = torch.stack([torch.tensor(x["nl_attention_masks"]) for x in batch])
 
     en_outputs = model(en_input_ids, attention_mask=en_attention_masks)
     nl_outputs = model(nl_input_ids, attention_mask=nl_attention_masks)
@@ -29,6 +32,8 @@ def get_dataloader_and_vocab(batch_size, split):
     tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
     model = AutoModel.from_pretrained("distilbert-base-uncased")
     encoded_dataset = dataset.map(lambda batch: tokenize(tokenizer, batch["translation"]), batched=True, batch_size=None)
+
+    # TODO implement random_split
 
     dataloader = DataLoader(encoded_dataset, batch_size=batch_size, shuffle=True, collate_fn=partial(collate_fn, model))
     vocab = tokenizer.get_vocab()
