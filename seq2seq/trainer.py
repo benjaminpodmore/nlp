@@ -15,7 +15,7 @@ class Trainer:
         self.val_dataloader = val_dataloader
         self.val_steps = val_steps
 
-        self.loss = {"train": [-1], "val": [-1]}
+        self.loss = {"train": [], "val": [0]}
 
     def train(self):
         for i in range(self.epochs):
@@ -33,18 +33,12 @@ class Trainer:
             labels = batch_data[1].to(self.device)
 
             self.optimizer.zero_grad()
-            outputs = self.model(inputs, labels)
-            # outputs.view(-1, 285, 768)
-            # preds = outputs[0]
-            loss = self.criterion(outputs, labels)
+            outputs = self.model(inputs, labels, 0.5)
+            loss = self.criterion(outputs.permute(0, 2, 1), labels)
             loss.backward()
             self.optimizer.step()
+
             running_loss.append(loss.item())
-
-            tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
-            model = AutoModel.from_pretrained("distilbert-base-uncased")
-
-
 
             if i == self.train_steps:
                 break
@@ -61,8 +55,8 @@ class Trainer:
                 inputs = batch_data[0].to(self.device)
                 labels = batch_data[1].to(self.device)
 
-                outputs = self.model(inputs)
-                loss = self.criterion(outputs, labels)
+                outputs = self.model(inputs, labels, 0)
+                loss = self.criterion(outputs.permute(0, 2, 1), labels)
 
                 running_loss.append(loss.item())
 
