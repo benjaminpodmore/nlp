@@ -9,19 +9,17 @@ class Seq2Seq(nn.Module):
     def __init__(self, input_dim, output_dim):
         super().__init__()
 
-        self.encoder = Encoder(768, 20, 1)
-        self.decoder = Decoder(768, 20, 1, 768)
+        self.encoder = Encoder(30522, 300, 128, 1, 0.1)
+        self.decoder = Decoder(30522, 300, 128, 1, 30522, 0.1)
 
-    def forward(self, x, label):
+    def forward(self, x, label, teaching_p):
         hidden, cell = self.encoder(x)
-        h0 = hidden[-1]
-        c0 = cell[-1]
 
-        preds = torch.zeros(1, 285, 768).to(torch.device("cuda"))
-        prev_token = label[0][0].unsqueeze(0)
+        preds = torch.zeros(10, 285, 30522).to(torch.device("cuda"))
+        prev_token = label[:, 0].unsqueeze(0)
         for t in range(1, 285):
-            pred, h0, c0 = self.decoder(prev_token, h0, c0)
-            preds[0][t] = pred
-            prev_token = label[0][t].unsqueeze(0) if random.random() < 0.5 else pred
+            pred, hidden, cell = self.decoder(prev_token, hidden, cell)
+            preds[:, t] = pred
+            prev_token = label[:, t].unsqueeze(0) if random.random() < teaching_p else pred.argmax(2)
 
         return preds

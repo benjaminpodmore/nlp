@@ -24,21 +24,29 @@ def collate_fn(model, batch):
     en_outputs = model(en_input_ids, attention_mask=en_attention_masks)
     nl_outputs = model(nl_input_ids, attention_mask=nl_attention_masks)
 
-    return en_outputs.last_hidden_state, nl_outputs.last_hidden_state
+    return en_input_ids, nl_input_ids
+    # return en_outputs.last_hidden_state, nl_outputs.last_hidden_state
 
 
 def get_dataloader_and_vocab(batch_size, split):
-    dataset = load_dataset("ted_talks_iwslt", "nl_en_2016", split=split)
     tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
     model = AutoModel.from_pretrained("distilbert-base-uncased")
-    encoded_dataset = dataset.map(lambda batch: tokenize(tokenizer, batch["translation"]), batched=True, batch_size=None)
+
+    dataset = load_dataset("ted_talks_iwslt", "nl_en_2016", split=split)
+    split = dataset.train_test_split(test_size=0.2, shuffle=True)
+    train_dataset = split["train"]
+    test_dataset = split["test"]
+
+    encoded_train_dataset = train_dataset.map(lambda batch: tokenize(tokenizer, batch["translation"]), batched=True, batch_size=None)
+    encoded_test_dataset = test_dataset.map(lambda batch: tokenize(tokenizer, batch["translation"]), batched=True, batch_size=None)
 
     # TODO implement random_split
 
-    dataloader = DataLoader(encoded_dataset, batch_size=batch_size, shuffle=True, collate_fn=partial(collate_fn, model))
+    train_dataloader = DataLoader(encoded_train_dataset, batch_size=batch_size, shuffle=True, collate_fn=partial(collate_fn, model))
+    test_dataloader = DataLoader(encoded_test_dataset, batch_size=batch_size, shuffle=True, collate_fn=partial(collate_fn, model))
     vocab = tokenizer.get_vocab()
 
-    return dataloader, vocab
+    return train_dataloader, test_dataloader, vocab
 
 
 if __name__ == "__main__":
