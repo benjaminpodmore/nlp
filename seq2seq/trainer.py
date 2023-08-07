@@ -17,10 +17,12 @@ class Trainer:
 
         self.loss = {"train": [], "val": [0]}
 
+        self.tokenizer = AutoTokenizer.from_pretrained("distilbert-base-multilingual-cased")
+
     def train(self):
         for i in range(self.epochs):
             self.train_epoch()
-            # self.validate_epoch()
+            self.validate_epoch()
             print(f"Epoch {i+1}: training loss: {self.loss['train'][-1]:.4f} validation loss: {self.loss['val'][-1]:.4f}")
             self.lr_scheduler.step()
 
@@ -46,6 +48,11 @@ class Trainer:
         epoch_loss = np.mean(running_loss)
         self.loss["train"].append(epoch_loss)
 
+        test_sentence = "Whenever I can, I try to smile. Especially on days when I have lots to smile about."
+        test_sentence_encoded = self.tokenizer.encode_plus(test_sentence, truncation=True, max_length=372, padding="max_length", return_tensors="pt")
+        pred = self.model(test_sentence_encoded["input_ids"].to(self.device), torch.tensor(101).view(1, 1).to(self.device), 0)
+        print(self.tokenizer.decode(pred[0].argmax(1), skip_special_tokens=True))
+
     def validate_epoch(self):
         self.model.eval()
         running_loss = []
@@ -65,4 +72,3 @@ class Trainer:
 
         epoch_loss = np.mean(running_loss)
         self.loss["val"].append(epoch_loss)
-
