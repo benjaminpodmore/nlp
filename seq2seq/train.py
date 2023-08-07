@@ -11,9 +11,10 @@ def train(batch_size, epochs, train_steps, val_steps):
     # device = torch.device("cpu")
     print(f"Using device {device}.")
 
-    train_dataloader, val_dataloader, vocab = get_dataloader_and_vocab(batch_size, "train")
+    train_dataloader, vocab = get_dataloader_and_vocab(batch_size, "train")
+    val_dataloader, _ = get_dataloader_and_vocab(batch_size, "validation")
 
-    model = Seq2Seq(165*768, 285*768)
+    model = Seq2Seq(len(vocab), 300, 128, len(vocab), device)
 
     optimizer = optim.Adam(model.parameters(), lr=0.1)
     lr_scheduler = optim.lr_scheduler.LinearLR(optimizer, start_factor=1.0, end_factor=0.01, total_iters=40)
