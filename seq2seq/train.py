@@ -25,4 +25,4 @@ def train(batch_size, epochs, train_steps, val_steps):
 
 
 if __name__ == "__main__":
-    train(10, 100, 5, 5)
+    train(2, 100, 5, 5)
