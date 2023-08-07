@@ -17,8 +17,6 @@ class Trainer:
 
         self.loss = {"train": [], "val": [0]}
 
-        self.tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
-
     def train(self):
         for i in range(self.epochs):
             self.train_epoch()
@@ -47,13 +45,6 @@ class Trainer:
 
         epoch_loss = np.mean(running_loss)
         self.loss["train"].append(epoch_loss)
-
-
-        test_sentence = "Whenever I can, I try to smile. Especially on days when I have lots to smile about."
-        test_sentence_encoded = self.tokenizer.encode_plus(test_sentence, truncation=True, max_length=285,
-                                                           padding="max_length", return_tensors="pt")
-        pred = self.model(test_sentence_encoded["input_ids"].to(torch.device("cuda")), torch.tensor(101).view(-1,1).to(torch.device("cuda")), 0)[0].argmax(1)
-        print(self.tokenizer.decode(pred, skip_special_tokens=True))
 
     def validate_epoch(self):
         self.model.eval()
