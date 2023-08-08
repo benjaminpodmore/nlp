@@ -17,21 +17,23 @@ def tokenize(src_tokenizer, src_key, tgt_tokenizer, tgt_key, batch):
 
 def collate_fn(model, batch):
     src_input_ids = torch.stack([torch.tensor(x["src_input_ids"]) for x in batch])
-    # src_attention_masks = torch.stack([torch.tensor(x["src_attention_masks"]) for x in batch])
+    src_attention_masks = torch.stack([torch.tensor(x["src_attention_masks"]) for x in batch])
     tgt_input_ids = torch.stack([torch.tensor(x["tgt_input_ids"]) for x in batch])
-    # tgt_attention_masks = torch.stack([torch.tensor(x["tgt_attention_masks"]) for x in batch])
-    #
-    # src_outputs = model(src_input_ids, attention_mask=src_attention_masks)
-    # tgt_outputs = model(tgt_input_ids, attention_mask=tgt_attention_masks)
+    tgt_attention_masks = torch.stack([torch.tensor(x["tgt_attention_masks"]) for x in batch])
 
-    return src_input_ids, tgt_input_ids
+    #     src_outputs = model(src_input_ids, attention_mask=src_attention_masks)
+    #     tgt_outputs = model(tgt_input_ids, attention_mask=tgt_attention_masks)
+    src_embs = model.embeddings(src_input_ids)
+    tgt_embs = model.embeddings(tgt_input_ids)
+
+    return (src_input_ids, src_embs), (tgt_input_ids, tgt_embs)
     # return en_outputs.last_hidden_state, nl_outputs.last_hidden_state
 
 
 def get_dataloader_and_vocab(batch_size, split):
-    en_tokenizer = AutoTokenizer.from_pretrained("distilbert-base-multilingual-cased")
-    it_tokenizer = AutoTokenizer.from_pretrained("distilbert-base-multilingual-cased")
-    model = AutoModel.from_pretrained("distilbert-base-multilingual-cased")
+    en_tokenizer = AutoTokenizer.from_pretrained("distilbert-base-cased")
+    it_tokenizer = AutoTokenizer.from_pretrained("distilbert-base-cased")
+    model = AutoModel.from_pretrained("distilbert-base-cased")
 
     dataset = load_dataset("opus100", "en-it", split=split)
     dataset_sample = Dataset.from_dict(dataset[:10000])
