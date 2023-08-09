@@ -21,15 +21,13 @@ class Seq2Seq(nn.Module):
     def forward(self, x, label_ids, label_embs, teaching_p):
         batch_size = x.shape[0]
         tgt_seq_len = label_ids.shape[1]
-        hidden, cell = self.encoder(x)
+        encoder_states, hidden, cell = self.encoder(x)
 
         preds = torch.zeros(batch_size, tgt_seq_len, self.output_dim).to(self.device)
         prev_token = label_embs[:, 0].unsqueeze(0)
         for t in range(1, tgt_seq_len):
-            pred, hidden, cell = self.decoder(prev_token, hidden, cell)
+            pred, hidden, cell = self.decoder(prev_token, encoder_states, hidden, cell)
             preds[:, t] = pred
-            prev_token = label_embs[:, t].unsqueeze(0)
-            prev_emb = None
             with torch.no_grad():
                 prev_emb = self.emb_model.embeddings(pred.argmax(2))
             prev_token = label_embs[:, t].unsqueeze(0) if random.random() < teaching_p else prev_emb

@@ -16,7 +16,7 @@ def train(batch_size, epochs, train_steps, val_steps) -> nn.Module:
     val_dataloader, _ = get_dataloader_and_vocab(batch_size, "validation")
     emb_model = AutoModel.from_pretrained("distilbert-base-cased")
 
-    model = Seq2Seq(768, 512, len(vocab), device, emb_model)
+    model = Seq2Seq(768, 128, len(vocab), device, emb_model)
 
     optimizer = optim.Adam(model.parameters(), lr=0.1)
     lr_scheduler = optim.lr_scheduler.LinearLR(optimizer, start_factor=1.0, end_factor=0.01, total_iters=40)
@@ -28,4 +28,4 @@ def train(batch_size, epochs, train_steps, val_steps) -> nn.Module:
 
 
 if __name__ == "__main__":
-    train(10, 10, 5, 5)
+    train(2, 10, 1, 1)
