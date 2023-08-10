@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 import torch.nn as nn
-from tqdm import tqdm
 
 
 class Trainer:
@@ -30,7 +29,7 @@ class Trainer:
         self.model.train()
         running_loss = []
 
-        for i, batch_data in tqdm(enumerate(self.train_dataloader, 1)):
+        for i, batch_data in enumerate(self.train_dataloader, 1):
             self.optimizer.zero_grad()
 
             inputs = batch_data[0].squeeze(0).permute(1, 0).to(self.device)
@@ -58,7 +57,7 @@ class Trainer:
         running_loss = []
 
         with torch.no_grad():
-            for i, batch_data in tqdm(enumerate(self.validation_dataloader, 1)):
+            for i, batch_data in enumerate(self.validation_dataloader, 1):
                 inputs = batch_data[0].squeeze(0).permute(1, 0).to(self.device)
                 labels = batch_data[1].squeeze(0).permute(1, 0).to(self.device)
 
