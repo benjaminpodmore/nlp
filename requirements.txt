@@ -1,0 +1,6 @@
+torch~=2.0.1
+sympy~=1.12
+numpy~=1.25.2
+tqdm~=4.66.1
+datasets~=2.14.4
+transformers~=4.31.0
