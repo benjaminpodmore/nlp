@@ -15,19 +15,21 @@ def train(batch_size,  embedding_dim, hidden_size, epochs, train_steps, val_step
     vocab_size = len(vocab)
 
     model = Seq2Seq(vocab_size, embedding_dim, hidden_size, vocab_size, device).to(device)
-    optimizer = optim.Adam(model.parameters(), lr=0.1)
+    optimizer = optim.Adam(model.parameters())
     criterion = nn.CrossEntropyLoss()
 
     trainer = Trainer(model, device, epochs, optimizer, criterion, train_dataloader, train_steps, validation_dataloader, val_steps, clip)
     trainer.train()
 
+    torch.save(model.state_dict(), 'model_params.pth')
+
 
 if __name__ == "__main__":
-    BATCH_SIZE = 128
+    BATCH_SIZE = 64
     EMBEDDING_DIM = 256
     HIDDEN_SIZE = 512
     EPOCHS = 10
-    TRAIN_STEPS = 1
-    VALIDATION_STEPS = 1
+    TRAIN_STEPS = 100
+    VALIDATION_STEPS = -1
     CLIP = 1
     train(BATCH_SIZE, EMBEDDING_DIM, HIDDEN_SIZE, EPOCHS, TRAIN_STEPS, VALIDATION_STEPS, CLIP)
