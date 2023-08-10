@@ -7,25 +7,27 @@ from model import Seq2Seq
 from trainer import Trainer
 
 
-def train(batch_size, epochs, train_steps, val_steps) -> nn.Module:
+def train(batch_size,  embedding_dim, hidden_size, epochs, train_steps, val_steps, clip):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # device = torch.device("cpu")
     print(f"Using device {device}.")
 
-    train_dataloader, vocab = get_dataloader_and_vocab(batch_size, "train")
-    val_dataloader, _ = get_dataloader_and_vocab(batch_size, "validation")
-    emb_model = AutoModel.from_pretrained("distilbert-base-cased")
+    train_dataloader, validation_dataloader, test_dataloader, vocab = get_dataloader_and_vocab(batch_size)
+    vocab_size = len(vocab)
 
-    model = Seq2Seq(768, 128, len(vocab), device, emb_model)
-
+    model = Seq2Seq(vocab_size, embedding_dim, hidden_size, vocab_size, device).to(device)
     optimizer = optim.Adam(model.parameters(), lr=0.1)
-    lr_scheduler = optim.lr_scheduler.LinearLR(optimizer, start_factor=1.0, end_factor=0.01, total_iters=40)
     criterion = nn.CrossEntropyLoss()
-    trainer = Trainer(device, model, epochs, optimizer, lr_scheduler, criterion, train_dataloader, train_steps,
-                      val_dataloader, val_steps)
 
+    trainer = Trainer(model, device, epochs, optimizer, criterion, train_dataloader, train_steps, validation_dataloader, val_steps, clip)
     trainer.train()
 
 
 if __name__ == "__main__":
-    train(2, 10, 1, 1)
+    BATCH_SIZE = 128
+    EMBEDDING_DIM = 256
+    HIDDEN_SIZE = 512
+    EPOCHS = 10
+    TRAIN_STEPS = 1
+    VALIDATION_STEPS = 1
+    CLIP = 1
+    train(BATCH_SIZE, EMBEDDING_DIM, HIDDEN_SIZE, EPOCHS, TRAIN_STEPS, VALIDATION_STEPS, CLIP)
