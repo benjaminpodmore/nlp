@@ -17,7 +17,24 @@ import math
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
-device = torch.device("cpu")
+if not torch.backends.mps.is_available():
+    if not torch.backends.mps.is_built():
+        print(
+            "MPS not available because the current PyTorch install was not "
+            "built with MPS enabled."
+        )
+        device = torch.device("cpu")
+
+    else:
+        print(
+            "MPS not available because the current MacOS version is not 12.3+ "
+            "and/or you do not have an MPS-enabled device on this machine."
+        )
+        device = torch.device("cpu")
+
+else:
+    device = torch.device("mps")
+
 
 SOS_TOKEN = 0
 EOS_TOKEN = 1
@@ -139,9 +156,8 @@ class EncoderRNN(nn.Module):
 
 
 class Attention(nn.Module):
-    def __init__(self, hidden_size):
+    def __init__(self):
         super(Attention, self).__init__()
-        self.fc = nn.Linear(hidden_size, hidden_size)
 
     def forward(self, encoder_outputs, hidden):
         # encoder_outputs: [batch, seq_length, hidden_size]
@@ -158,6 +174,29 @@ class Attention(nn.Module):
             attention_weights.transpose(1, 2), encoder_outputs
         )  # [batch, 1, hidden_size]
         return attended_encoder_outputs, attention_weights
+
+
+class ScaledDotProductAttention(nn.Module):
+    def __init__(self, hidden_size):
+        super(ScaledDotProductAttention, self).__init__()
+        # in the formula, Q, K, V are the projections, which are the results of multiplying each weight matrix by the relevant input (hidden or encoder output)
+        self.W_q = nn.Linear(hidden_size, hidden_size)
+        self.W_k = nn.Linear(hidden_size, hidden_size)
+        self.W_v = nn.Linear(hidden_size, hidden_size)
+        self.scale = hidden_size**0.5
+
+    def forward(self, encoder_outputs, hidden):
+        Q = self.W_q(hidden.permute(1, 0, 2))  # [batch, 1, hidden_size]
+        K = self.W_k(encoder_outputs)  # [batch, seq_length, hidden_size]
+        V = self.W_v(encoder_outputs)  # [batch, seq_length, hidden_size]
+
+        attention_scores = (
+            torch.bmm(Q, K.transpose(1, 2)) / self.scale
+        )  # [batch, 1, sequence_length] DIFFERENT ORDER TO MY SIMPLE ONE
+        attention_weights = F.softmax(attention_scores, dim=2)  # [batch, seq_length, 1]
+        attended_outputs = torch.bmm(attention_weights, V)  # [batch, 1, hidden_size]
+
+        return attended_outputs, attention_weights
 
 
 class DecoderRNN(nn.Module):
@@ -380,11 +419,13 @@ def evaluate_randomly(encoder, decoder, input_lang, output_lang, pairs, n=10):
 if __name__ == "__main__":
     hidden_size = 128
     batch_size = 32
+    x = torch.ones(1).to(device)
+    print(x)
 
     input_lang, output_lang, pairs, train_dataloader = get_dataloader(batch_size)
 
     encoder = EncoderRNN(input_lang.n_words, hidden_size).to(device)
-    attention = Attention(hidden_size)
+    attention = ScaledDotProductAttention(hidden_size)
     decoder = DecoderRNN(hidden_size, output_lang.n_words, attention).to(device)
 
     train(train_dataloader, encoder, decoder, 80, print_every=5, plot_every=5)
