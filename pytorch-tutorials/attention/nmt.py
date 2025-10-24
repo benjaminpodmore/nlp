@@ -138,11 +138,37 @@ class EncoderRNN(nn.Module):
         return output, hidden
 
 
+class Attention(nn.Module):
+    def __init__(self, hidden_size):
+        super(Attention, self).__init__()
+        self.fc = nn.Linear(hidden_size, hidden_size)
+
+    def forward(self, encoder_outputs, hidden):
+        # encoder_outputs: [batch, seq_length, hidden_size]
+        # hidden: [1, batch, hidden_size]
+
+        hidden = hidden.permute(1, 0, 2)
+        # hidden: [batch, 1, hidden_size]
+
+        # hidden.transpose(1,2): [batch, hidden_size, 1] i.e. gives rise to dot product
+        attention_scores = torch.bmm(encoder_outputs, hidden.transpose(1, 2))
+        # attention_scores = [batch, seq_length, 1]
+        attention_weights = F.softmax(attention_scores, dim=2)  # [batch, seq_length, 1]
+        attended_encoder_outputs = torch.bmm(
+            attention_weights.transpose(1, 2), encoder_outputs
+        )  # [batch, 1, hidden_size]
+        return attended_encoder_outputs, attention_weights
+
+
 class DecoderRNN(nn.Module):
-    def __init__(self, hidden_size, output_size):
+    def __init__(self, hidden_size, output_size, attention=None):
         super(DecoderRNN, self).__init__()
         self.embedding = nn.Embedding(output_size, hidden_size)
-        self.gru = nn.GRU(hidden_size, hidden_size, batch_first=True)
+        self.attention = attention
+        if self.attention is not None:
+            self.gru = nn.GRU(hidden_size * 2, hidden_size, batch_first=True)
+        else:
+            self.gru = nn.GRU(hidden_size, hidden_size, batch_first=True)
         self.out = nn.Linear(hidden_size, output_size)
 
     def forward(self, encoder_outputs, encoder_hidden, target_tensor=None):
@@ -155,7 +181,7 @@ class DecoderRNN(nn.Module):
 
         for i in range(MAX_LENGTH):
             decoder_output, decoder_hidden = self.forward_step(
-                decoder_input, decoder_hidden
+                decoder_input, encoder_outputs, decoder_hidden
             )
             decoder_outputs.append(decoder_output)
 
@@ -168,10 +194,12 @@ class DecoderRNN(nn.Module):
         decoder_outputs = F.log_softmax(decoder_outputs, dim=-1)
         return decoder_outputs, decoder_hidden, None
 
-    def forward_step(self, input, hidden):
-        output = self.embedding(input)
-        output = F.relu(output)
-        output, hidden = self.gru(output, hidden)
+    def forward_step(self, input, encoder_outputs, hidden):
+        embedded = self.embedding(input)
+        embedded = F.relu(embedded)  # [batch, 1, hidden_size]
+        attended_encoder_outputs, _ = self.attention(encoder_outputs, hidden)
+        rnn_input = torch.cat([embedded, attended_encoder_outputs], dim=2)
+        output, hidden = self.gru(rnn_input, hidden)
         output = self.out(output)
         return output, hidden
 
@@ -244,14 +272,15 @@ def train_epoch(
 def as_minutes(s):
     m = math.floor(s / 60)
     s -= m * 60
-    return '%dm %ds' % (m, s)
+    return "%dm %ds" % (m, s)
+
 
 def time_since(since, percent):
     now = time.time()
     s = now - since
     es = s / (percent)
     rs = es - s
-    return '%s (- %s)' % (as_minutes(s), as_minutes(rs))
+    return "%s (- %s)" % (as_minutes(s), as_minutes(rs))
 
 
 def show_plot(points):
@@ -260,7 +289,7 @@ def show_plot(points):
     loc = ticker.MultipleLocator(base=0.2)
     ax.yaxis.set_major_locator(loc)
     plt.plot(points)
-    plt.savefig('loss_plot.png')
+    plt.savefig("loss_plot.png")
     plt.close()
     print("Loss plot saved to loss_plot.png")
 
@@ -355,7 +384,8 @@ if __name__ == "__main__":
     input_lang, output_lang, pairs, train_dataloader = get_dataloader(batch_size)
 
     encoder = EncoderRNN(input_lang.n_words, hidden_size).to(device)
-    decoder = DecoderRNN(hidden_size, output_lang.n_words).to(device)
+    attention = Attention(hidden_size)
+    decoder = DecoderRNN(hidden_size, output_lang.n_words, attention).to(device)
 
     train(train_dataloader, encoder, decoder, 80, print_every=5, plot_every=5)
     encoder.eval()
